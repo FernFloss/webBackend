@@ -1,0 +1,109 @@
+package handlers
+
+import (
+	"log"
+	"net/http"
+	"strconv"
+
+	"web_backend/db"
+
+	"github.com/gin-gonic/gin"
+)
+
+// GetAuditoriumsByBuilding handles GET /v1/buildings/:building_id/auditoriums
+// Returns a list of auditoriums in a specific building
+func GetAuditoriumsByBuilding(c *gin.Context) {
+	// Parse building_id from path parameter
+	buildingIDStr := c.Param("building_id")
+	buildingID, err := strconv.ParseUint(buildingIDStr, 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid building_id parameter",
+		})
+		return
+	}
+
+	// Get underlying *sql.DB from GORM
+	sqlDB, err := db.GetDB().DB()
+	if err != nil {
+		log.Printf("Error getting database connection: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to connect to database",
+		})
+		return
+	}
+
+	// Verify that the building exists
+	var buildingExists bool
+	checkQuery := `SELECT EXISTS(SELECT 1 FROM building WHERE id = $1)`
+	err = sqlDB.QueryRow(checkQuery, uint(buildingID)).Scan(&buildingExists)
+	if err != nil {
+		log.Printf("Error checking building existence: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to verify building",
+		})
+		return
+	}
+
+	if !buildingExists {
+		c.JSON(http.StatusNotFound, gin.H{
+			"error": "Building not found",
+		})
+		return
+	}
+
+	// Query auditoriums for this building using raw SQL with English column names
+	query := `SELECT id, building_id, floor_number, capacity, auditorium_number,
+	                 type, type_ru, type_en, image_url
+	          FROM auditorium
+	          WHERE building_id = $1
+	          ORDER BY id`
+	rows, err := sqlDB.Query(query, uint(buildingID))
+	if err != nil {
+		log.Printf("Error fetching auditoriums: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to fetch auditoriums",
+		})
+		return
+	}
+	defer rows.Close()
+
+	var auditoriums []models.Auditorium
+	for rows.Next() {
+		var auditorium models.Auditorium
+		if err := rows.Scan(
+			&auditorium.ID,
+			&auditorium.BuildingID,
+			&auditorium.FloorNumber,
+			&auditorium.Capacity,
+			&auditorium.AuditoriumNumber,
+			&auditorium.Type,
+			&auditorium.TypeRU,
+			&auditorium.TypeEN,
+			&auditorium.ImageURL,
+		); err != nil {
+			log.Printf("Error scanning auditorium row: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": "Failed to process auditoriums",
+			})
+			return
+		}
+		auditoriums = append(auditoriums, auditorium)
+	}
+
+	if err := rows.Err(); err != nil {
+		log.Printf("Error iterating auditoriums: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": "Failed to process auditoriums",
+		})
+		return
+	}
+
+	// Convert to response format
+	response := make([]models.AuditoriumResponse, len(auditoriums))
+	for i := range auditoriums {
+		response[i] = auditoriums[i].ToAuditoriumResponse()
+	}
+
+	c.JSON(http.StatusOK, response)
+}

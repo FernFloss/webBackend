@@ -1,0 +1,143 @@
+package handlers
+
+import (
+	"encoding/json"
+	"testing"
+	"time"
+
+	"web_backend/models"
+	"web_backend/utils"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+)
+
+// MockResolver is a mock for the auditorium resolver
+type MockResolver struct {
+	mock.Mock
+}
+
+func (m *MockResolver) ResolveAuditoriumID(cityName, buildingAddress, auditoriumNumber string) (uint, error) {
+	args := m.Called(cityName, buildingAddress, auditoriumNumber)
+	return args.Get(0).(uint), args.Error(1)
+}
+
+// TestValidateCameraEvent tests the validation function
+func TestValidateCameraEvent(t *testing.T) {
+	tests := []struct {
+		name    string
+		event   models.CameraEvent
+		wantErr bool
+	}{
+		{
+			name: "valid event",
+			event: models.CameraEvent{
+				City:             "Москва",
+				Building:         "ул. Ленина, д. 1",
+				AuditoriumNumber: "101",
+				Timestamp:        time.Now(),
+				PersonCount:      25,
+			},
+			wantErr: false,
+		},
+		{
+			name: "missing city",
+			event: models.CameraEvent{
+				Building:         "ул. Ленина, д. 1",
+				AuditoriumNumber: "101",
+				Timestamp:        time.Now(),
+				PersonCount:      25,
+			},
+			wantErr: true,
+		},
+		{
+			name: "missing building",
+			event: models.CameraEvent{
+				City:             "Москва",
+				AuditoriumNumber: "101",
+				Timestamp:        time.Now(),
+				PersonCount:      25,
+			},
+			wantErr: true,
+		},
+		{
+			name: "missing auditorium_number",
+			event: models.CameraEvent{
+				City:        "Москва",
+				Building:    "ул. Ленина, д. 1",
+				Timestamp:   time.Now(),
+				PersonCount: 25,
+			},
+			wantErr: true,
+		},
+		{
+			name: "negative person_count",
+			event: models.CameraEvent{
+				City:             "Москва",
+				Building:         "ул. Ленина, д. 1",
+				AuditoriumNumber: "101",
+				Timestamp:        time.Now(),
+				PersonCount:      -5,
+			},
+			wantErr: true,
+		},
+		{
+			name: "zero timestamp",
+			event: models.CameraEvent{
+				City:             "Москва",
+				Building:         "ул. Ленина, д. 1",
+				AuditoriumNumber: "101",
+				Timestamp:        time.Time{},
+				PersonCount:      25,
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := utils.ValidateCameraEvent(&tt.event)
+			if tt.wantErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+// TestProcessCameraEvent_ValidMessage tests processing a valid message
+func TestProcessCameraEvent_ValidMessage(t *testing.T) {
+	// Create a valid event
+	event := models.CameraEvent{
+		City:             "Москва",
+		Building:         "ул. Ленина, д. 1",
+		AuditoriumNumber: "101",
+		Timestamp:        time.Now(),
+		PersonCount:      25,
+	}
+
+	// Marshal to JSON
+	messageBody, err := json.Marshal(event)
+	assert.NoError(t, err)
+
+	// Note: This test would require a database connection
+	// In a real scenario, you'd use a test database or mocks
+	// For now, we just test that the message can be parsed
+	var parsedEvent models.CameraEvent
+	err = json.Unmarshal(messageBody, &parsedEvent)
+	assert.NoError(t, err)
+	assert.Equal(t, event.City, parsedEvent.City)
+	assert.Equal(t, event.Building, parsedEvent.Building)
+	assert.Equal(t, event.AuditoriumNumber, parsedEvent.AuditoriumNumber)
+	assert.Equal(t, event.PersonCount, parsedEvent.PersonCount)
+}
+
+// TestProcessCameraEvent_InvalidJSON tests processing an invalid JSON message
+func TestProcessCameraEvent_InvalidJSON(t *testing.T) {
+	invalidJSON := []byte("{invalid json}")
+	err := ProcessCameraEvent(invalidJSON)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to parse message")
+}
+

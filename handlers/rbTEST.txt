@@ -1,0 +1,133 @@
+package handlers
+
+import (
+	"encoding/json"
+	"fmt"
+	"log"
+	"time"
+
+	"web_backend/db"
+	"web_backend/models"
+	"web_backend/utils"
+)
+
+// ProcessCameraEvent processes a camera event message from RabbitMQ
+// It resolves the auditorium_id and inserts the occupancy record atomically using a transaction
+//
+// Race Condition Prevention:
+//   - Uses database transaction to ensure atomicity
+//   - Resolve and insert happen in the same transaction
+//   - Prevents concurrent inserts from causing issues
+//
+// Error Handling:
+//   - Returns error if auditorium doesn't exist (no auto-creation per requirements)
+//   - Validates all input data before processing
+//   - Provides detailed error messages
+func ProcessCameraEvent(messageBody []byte) error {
+	// Parse the message
+	var event models.CameraEvent
+	if err := json.Unmarshal(messageBody, &event); err != nil {
+		return fmt.Errorf("failed to parse message: %w", err)
+	}
+
+	// Validate the event
+	if err := utils.ValidateCameraEvent(&event); err != nil {
+		return fmt.Errorf("validation failed: %w", err)
+	}
+
+	// Get underlying *sql.DB from GORM
+	sqlDB, err := db.GetDB().DB()
+	if err != nil {
+		return fmt.Errorf("failed to get database connection: %w", err)
+	}
+
+	// Use a transaction to ensure atomicity and prevent race conditions
+	// This ensures that resolve + insert happen atomically
+	maxRetries := 3
+	retryDelay := 1 * time.Second
+
+	var finalErr error
+	for attempt := 0; attempt < maxRetries; attempt++ {
+		// Start transaction
+		tx, err := sqlDB.Begin()
+		if err != nil {
+			finalErr = fmt.Errorf("failed to begin transaction: %w", err)
+			if attempt < maxRetries-1 {
+				log.Printf("Failed to begin transaction (attempt %d/%d): %v. Retrying in %v...",
+					attempt+1, maxRetries, err, retryDelay)
+				time.Sleep(retryDelay)
+				retryDelay *= 2
+				continue
+			}
+			break
+		}
+
+		// Resolve auditorium_id from city, building, and auditorium_number
+		// Pass the transaction so the resolve happens within the same transaction
+		auditoriumID, err := utils.ResolveAuditoriumID(
+			tx,
+			event.City,
+			event.Building,
+			event.AuditoriumNumber,
+		)
+		if err != nil {
+			tx.Rollback()
+			finalErr = fmt.Errorf("failed to resolve auditorium_id: %w", err)
+			if attempt < maxRetries-1 {
+				log.Printf("Failed to resolve auditorium (attempt %d/%d): %v. Retrying in %v...",
+					attempt+1, maxRetries, err, retryDelay)
+				time.Sleep(retryDelay)
+				retryDelay *= 2
+				continue
+			}
+			break
+		}
+
+		log.Printf("Resolved auditorium_id=%d for city=%s, building=%s, auditorium_number=%s",
+			auditoriumID, event.City, event.Building, event.AuditoriumNumber)
+
+		// Insert occupancy record using raw SQL with English column names
+		insertQuery := `INSERT INTO occupancy (auditorium_id, person_count, timestamp) 
+		                VALUES ($1, $2, $3) 
+		                RETURNING id`
+		var occupancyID uint
+		err = tx.QueryRow(insertQuery, auditoriumID, event.PersonCount, event.Timestamp).Scan(&occupancyID)
+		if err != nil {
+			tx.Rollback()
+			finalErr = fmt.Errorf("failed to insert occupancy: %w", err)
+			if attempt < maxRetries-1 {
+				log.Printf("Failed to insert occupancy (attempt %d/%d): %v. Retrying in %v...",
+					attempt+1, maxRetries, err, retryDelay)
+				time.Sleep(retryDelay)
+				retryDelay *= 2
+				continue
+			}
+			break
+		}
+
+		// Commit transaction
+		if err := tx.Commit(); err != nil {
+			finalErr = fmt.Errorf("failed to commit transaction: %w", err)
+			if attempt < maxRetries-1 {
+				log.Printf("Failed to commit transaction (attempt %d/%d): %v. Retrying in %v...",
+					attempt+1, maxRetries, err, retryDelay)
+				time.Sleep(retryDelay)
+				retryDelay *= 2
+				continue
+			}
+			break
+		}
+
+		log.Printf("Successfully inserted occupancy: id=%d, auditorium_id=%d, person_count=%d, timestamp=%s",
+			occupancyID, auditoriumID, event.PersonCount, event.Timestamp.Format(time.RFC3339))
+
+		finalErr = nil
+		break
+	}
+
+	if finalErr != nil {
+		return fmt.Errorf("failed to process camera event after %d attempts: %w", maxRetries, finalErr)
+	}
+
+	return nil
+}
