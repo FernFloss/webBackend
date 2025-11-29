@@ -7,7 +7,7 @@ import (
 type City struct {
 	ID     uint   `gorm:"primaryKey;column:id"`
 	NameRU string `gorm:"column:name_ru;not null"`
-	NameEN string `gorm:"column:name_en";not null"`
+	NameEN string `gorm:"column:name_en;not null"`
 }
 
 type Building struct {
