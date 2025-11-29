@@ -10,10 +10,10 @@ import (
 
 // Config holds all configuration for the application
 type Config struct {
-	DB        DBConfig
-	RabbitMQ  RabbitMQConfig
-	QueueName string
-	GinMode   string
+	DB         DBConfig
+	RabbitMQ   RabbitMQConfig
+	QueueName  string
+	GinMode    string
 	ServerPort string // HTTP server port
 }
 
@@ -68,7 +68,7 @@ func LoadConfig() (*Config, error) {
 	config.QueueName = getEnv("QUEUE_NAME", "camera_events")
 
 	// Load Gin mode
-	config.GinMode = getEnv("GIN_MODE", "release")
+	config.GinMode = getEnv("GIN_MODE", "debug")
 
 	// Load server port
 	config.ServerPort = getEnv("SERVER_PORT", "8080")
@@ -83,4 +83,3 @@ func getEnv(key, defaultValue string) string {
 	}
 	return defaultValue
 }
-

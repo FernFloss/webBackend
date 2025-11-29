@@ -109,12 +109,18 @@ func setupRouter() *gin.Engine {
 	// API v1 routes
 	v1 := router.Group("/v1")
 	{
-		city := new(handlers.CityController)
 		// Cities endpoints
-		v1.GET("/cities", city.GetCities)
+		cities := v1.Group("/cities")
+		{
+			city := new(handlers.CityController)
+			cities.GET("/", city.GetCities)
+			// Buildings endpoints
+			building := new(handlers.BuildingController)
+			cities.GET("/:city_id/buildings", building.GetBuildingsByCity)
+			auditorium := new(handlers.AuditoriumController)
+			cities.GET("/:city_id/buildings/:building_id/auditories", auditorium.GetAuditoriumsByBuilding)
 
-		// // Buildings endpoints
-		// v1.GET("/cities/:city_id/buildings", handlers.GetBuildingsByCity)
+		}
 
 		// // Auditoriums endpoints
 		// v1.GET("/buildings/:building_id/auditoriums", handlers.GetAuditoriumsByBuilding)

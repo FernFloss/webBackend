@@ -1,5 +1,10 @@
 package forms
 
+import (
+	"fmt"
+	"time"
+)
+
 // LocalizedString represents a localized string with Russian and English values
 type LocalizedString struct {
 	RU string `json:"ru"`
@@ -17,7 +22,6 @@ type BuildingResponse struct {
 	ID          uint            `json:"id"`
 	Address     LocalizedString `json:"address"`
 	FloorsCount int             `json:"floors_count"`
-	CityID      uint            `json:"city_id"`
 }
 
 // AuditoriumResponse represents the JSON response for an auditorium
@@ -28,6 +32,38 @@ type AuditoriumResponse struct {
 	AuditoriumNumber string          `json:"auditorium_number"`
 	Type             LocalizedString `json:"type"`
 	ImageURL         string          `json:"image_url"`
+}
+
+type OccupancyResult struct {
+	PersonCount     int       `json:"person_count"`
+	ActualTimestamp time.Time `json:"actual_timestamp"`
+	IsFresh         bool      `json:"is_fresh"`
+	TimeDiffMinutes float64   `json:"time_diff_minutes"`
+	Warning         *string   `json:"warning,omitempty"`
+}
+
+func (o *Occupancy) ToOccupancyResponse(currentTime time.Time, maxTimeDiffMinutes int) *OccupancyResult {
+	// Вычисляем разницу во времени в минутах
+	timeDiff := currentTime.Sub(o.Timestamp).Minutes()
+	isFresh := timeDiff <= float64(maxTimeDiffMinutes)
+
+	result := &OccupancyResult{
+		PersonCount:     o.PersonCount,
+		ActualTimestamp: o.Timestamp,
+		IsFresh:         isFresh,
+		TimeDiffMinutes: timeDiff,
+	}
+
+	// Добавляем предупреждение, если данные неактуальны
+	if !isFresh {
+		warning := fmt.Sprintf(
+			"Данные могут быть неактуальны. Последнее обновление было %.1f минут назад (максимум %d минут для актуальных данных)",
+			timeDiff, maxTimeDiffMinutes,
+		)
+		result.Warning = &warning
+	}
+
+	return result
 }
 
 // ToCityResponse converts a City model to CityResponse
@@ -50,7 +86,6 @@ func (b *Building) ToBuildingResponse() BuildingResponse {
 			EN: b.AddressEN,
 		},
 		FloorsCount: b.FloorCount,
-		CityID:      b.CityID,
 	}
 }
 
