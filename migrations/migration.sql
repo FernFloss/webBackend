@@ -93,9 +93,8 @@ ON CONFLICT (id) DO NOTHING;
 
 -- Insert sample data for auditorium
 INSERT INTO auditorium (id, building_id, floor_number, capacity, auditorium_number, type, type_ru, image_url) VALUES
-(1, 1, 5, 120, '506', 'lecture_hall', 'лекционная', 'https://example.com/images/1.jpg'),
-(2, 1, -1, 120, '-1 этаж', 'coworking', 'коворкинг', 'https://example.com/images/2.jpg'),
-(3, 1, 3, 120, '306', 'classroom', 'учебная', 'https://example.com/images/3.jpg'),
-(4, 1, 3, 120, '307', 'classroom', 'учебная', 'https://example.com/images/4.jpg'),
-(5, 1, 3, 120, '308', 'classroom', 'учебная', 'https://example.com/images/5.jpg')
+(1, 1, 5, 150, '506', 'lecture_hall', 'лекционная', 'https://example.com/images/1.jpg'),
+(2, 1, -1, 120, 'Актовый зал', 'coworking', 'коворкинг', 'https://example.com/images/2.jpg'),
+(3, 1, 3, 30, '306', 'classroom', 'учебная', 'https://example.com/images/3.jpg'),
+(4, 1, 3, 30, '308', 'classroom', 'учебная', 'https://example.com/images/4.jpg'),
 ON CONFLICT (id) DO NOTHING;
