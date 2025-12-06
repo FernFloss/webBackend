@@ -58,48 +58,44 @@ CREATE INDEX IF NOT EXISTS idx_auditorium_number ON Auditorium(auditorium_number
 CREATE INDEX IF NOT EXISTS idx_occupancy_auditorium_id ON Occupancy(auditorium_id);
 CREATE INDEX IF NOT EXISTS idx_occupancy_timestamp ON Occupancy(timestamp);
 
--- Optional: Insert sample data (uncomment to use)
+-- Insert sample data for city
+INSERT INTO city (id, name_ru, name_en) VALUES
+(1, 'Москва', 'Moscow'),
+(2, 'Санкт-Петербург', 'Saint-Petersberg'),
+(3, 'Пермь', 'Perm'),
+(4, 'Нижний Новгород', 'Nizhny Novgorod')
+ON CONFLICT (id) DO NOTHING;
 
--- Sample Cities
-INSERT INTO City (name_ru, name_en) VALUES 
-    ('Москва', 'Moscow'),
-    ('Санкт-Петербург', 'Saint Petersburg'),
-    ('Новосибирск', 'Novosibirsk')
-ON CONFLICT DO NOTHING;
+-- Insert sample data for building
+INSERT INTO building (id, city_id, address_ru, address_en, floor_count) VALUES
+(1, 1, 'Ул. Таллинская, 34', '34 Tallinskaya Street', 7),
+(2, 1, 'Покровский бульвар, 11', '11 Pokrovskiy Bulvar', 7),
+(3, 1, 'Ул. Мясницкая, 20', '20 Myasnitskaya Street', 5),
+(4, 1, 'Кривоколенный Переулок, 3', ' 3 Krivokolenny Pereulok', 4),
+(5, 1, 'Армянский переулок', '4 Armyanskiy pereulok, bldg. 2', 4),
+(6, 1, 'Ул. Старая Басманная, 21/4, к. 1', ' 21/4 Staraya Basmannaya, bldg. 1', 5),
+(7, 1, 'Ул. Старая Басманная, 21/4, к. 5', ' 21/4 Staraya Basmannaya, bldg. 5', 8),
+(8, 1, 'Ул. Шаболовка, 26, к. 2', '26 Shabolovka Street, bldg. 2)', 3),
+(9, 1, 'Ул. Шаболовка, 26, к. 3', '26 Shabolovka Street, bldg. 3', 4),
+(10, 1, 'Ул. Шаболовка, 26/11, к. 4', '26/11 Shabolovka Street, bldg. 4', 3),
+(11, 1, 'Ул. Шаболовка, 26/11, к. 9', '26/11 Shabolovka Street, bldg. 9', 3),
+(12, 2, 'Васильевский остров, 25-я линия, 6, к. 1', '6, 25th Liniya, Vasilievsky Ostrov, bldg. 1', 4),
+(13, 2, 'Канала Грибоедова наб., 119-121', '119-121 Kanala Griboedova Embankment', 3),
+(14, 2, 'Ул. Промышленная, 17', '17 Promyshlennaya Street', 5),
+(15, 2, 'Ул. Союза Печатников, 16', '16 Soyuza Pechatnikov Street', 4),
+(16, 3, 'Ул. Студенческая, 38, к. 1', '38 Studencheskaya Street, bldg. 1', 4),
+(17, 3, 'Гагарина бульвар, 37', '37 Gagarina Bulvar, bldg. 2', 4),
+(18, 3, 'Гагарина бульвар, 37а', '37A Gagarina Bulvar, bldg. 3', 4),
+(19, 4, 'Ул. Родионова, 13б', '13B Rodionova Street', 4),
+(20, 4, 'Ул. Львовская, 1в', '1В Lvovskaya Street', 4),
+(21, 4, 'Ул. Большая Печерская, 25/12', '25/12 Bolshaya Pecherskaya Street', 4)
+ON CONFLICT (id) DO NOTHING;
 
--- Sample Buildings
-INSERT INTO Building (city_id, address_ru, address_en, floor_count) VALUES 
-    (1, 'ул. Ленина, д. 1', 'Lenina St, 1', 5),
-    (1, 'пр. Мира, д. 10', 'Mira Ave, 10', 3),
-    (2, 'Невский проспект, д. 20', 'Nevsky Prospect, 20', 4),
-    (3, 'Красный проспект, д. 50', 'Krasny Prospect, 50', 6)
-ON CONFLICT DO NOTHING;
-
--- Sample Auditoriums
-INSERT INTO Auditorium (
-    building_id, 
-    floor_number, 
-    capacity, 
-    auditorium_number, 
-    type, 
-    type_ru, 
-    image_url
-) VALUES 
-    (1, 1, 30, '101', 'classroom', 'учебная',  'https://example.com/images/101.jpg'),
-    (1, 2, 50, '201', 'lecture_hall', 'лекционная',  'https://example.com/images/201.jpg'),
-    (1, 3, 20, '301', 'coworking', 'коворкинг',  'https://example.com/images/301.jpg'),
-    (2, 1, 40, '101', 'classroom', 'учебная',  'https://example.com/images/102.jpg'),
-    (2, 2, 60, '201', 'lecture_hall', 'лекционная',  'https://example.com/images/202.jpg'),
-    (3, 2, 100, '201', 'lecture_hall', 'лекционная',  'https://example.com/images/203.jpg'),
-    (4, 1, 25, '101', 'classroom', 'учебная', 'https://example.com/images/104.jpg')
-ON CONFLICT DO NOTHING;
-
--- Sample Occupancy records
-INSERT INTO Occupancy (auditorium_id, person_count, timestamp) VALUES 
-    (1, 25, '2024-01-15 10:30:00+00'),
-    (1, 30, '2024-01-15 12:00:00+00'),
-    (2, 45, '2024-01-15 14:00:00+00'),
-    (3, 15, '2024-01-15 16:00:00+00')
-ON CONFLICT DO NOTHING;
-
-
+-- Insert sample data for auditorium
+INSERT INTO auditorium (id, building_id, floor_number, capacity, auditorium_number, type, type_ru, image_url) VALUES
+(1, 1, 5, 120, '506', 'lecture_hall', 'лекционная', 'https://example.com/images/1.jpg'),
+(2, 1, -1, 120, '-1 этаж', 'coworking', 'коворкинг', 'https://example.com/images/2.jpg'),
+(3, 1, 3, 120, '306', 'classroom', 'учебная', 'https://example.com/images/3.jpg'),
+(4, 1, 3, 120, '307', 'classroom', 'учебная', 'https://example.com/images/4.jpg'),
+(5, 1, 3, 120, '308', 'classroom', 'учебная', 'https://example.com/images/5.jpg')
+ON CONFLICT (id) DO NOTHING;
