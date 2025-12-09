@@ -119,8 +119,24 @@ func setupRouter() *gin.Engine {
 			cities.GET("/:city_id/buildings", building.GetBuildingsByCity)
 			auditorium := new(handlers.AuditoriumController)
 			cities.GET("/:city_id/buildings/:building_id/auditories", auditorium.GetAuditoriumsByBuilding)
+			camera := new(handlers.CameraController)
+			cities.GET("/:city_id/buildings/:building_id/auditories/:auditorium_id/cameras", camera.GetCamerasByAuditorium)
+			cities.POST("/:city_id/buildings/:building_id/auditories/:auditorium_id/cameras", camera.AttachCamera)
 
 		}
+		// Cameras endpoints 
+		cameras := v1.Group("/cameras")
+		{
+			camera := new(handlers.CameraController)
+			cameras.GET("/", camera.GetFreeCameras)
+			cameras.GET("/attached", camera.GetAttachedCameras)
+			cameras.GET("/:camera_id", camera.GetCamera)
+			cameras.POST("/", camera.CreateCamera)
+			cameras.DELETE("/:camera_id", camera.DeleteCamera)
+			cameras.DELETE("/:camera_id/attachment", camera.DetachCamera)
+		}
+		// Cameras endpoints (global)
+
 
 		// // Auditoriums endpoints
 		// v1.GET("/buildings/:building_id/auditoriums", handlers.GetAuditoriumsByBuilding)

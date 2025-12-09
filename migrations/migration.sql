@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS City (
     name_en VARCHAR(255) NOT NULL
 );
 
+
 -- Create Building table
 -- Localized fields: address_ru, address_en (no base 'address' column)
 CREATE TABLE IF NOT EXISTS Building (
@@ -45,10 +46,24 @@ CREATE TABLE IF NOT EXISTS Auditorium (
 -- Create Occupancy table
 CREATE TABLE IF NOT EXISTS Occupancy (
     id SERIAL PRIMARY KEY,
-    auditorium_id INTEGER NOT NULL,
+    auditorium_id SERIAL NOT NULL,
     person_count INTEGER NOT NULL,
-    timestamp TIMESTAMP WITH TIME ZONE NOT NULL,
-    CONSTRAINT fk_occupancy_auditorium FOREIGN KEY (auditorium_id) REFERENCES Auditorium(id) ON DELETE CASCADE
+    timestamp TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+    CONSTRAINT fk_occupancy_auditorium FOREIGN KEY (auditorium_id) REFERENCES Auditorium(id) ON DELETE CASCADE,
+    CONSTRAINT chk_occupancy_person_count_nonnegative CHECK (person_count >= 0)
+);
+
+CREATE TABLE IF NOT EXISTS Camera (
+    id SERIAL  PRIMARY KEY ,
+    mac CHAR(17) NOT NULL UNIQUE
+);
+
+CREATE TABLE IF NOT EXISTS CamerasInAuditorium (
+    camera_id SERIAL,
+    auditorium_id SERIAL NOT NULL,
+    UNIQUE(camera_id),
+    CONSTRAINT fk_cameras_in_auditorium_camera FOREIGN KEY (camera_id) REFERENCES Camera(id) ON DELETE CASCADE,
+    CONSTRAINT fk_cameras_in_auditorium_auditorium FOREIGN KEY (auditorium_id) REFERENCES Auditorium(id) ON DELETE CASCADE
 );
 
 -- Create indexes for better query performance
@@ -56,7 +71,7 @@ CREATE INDEX IF NOT EXISTS idx_building_city_id ON Building(city_id);
 CREATE INDEX IF NOT EXISTS idx_auditorium_building_id ON Auditorium(building_id);
 CREATE INDEX IF NOT EXISTS idx_auditorium_number ON Auditorium(auditorium_number);
 CREATE INDEX IF NOT EXISTS idx_occupancy_auditorium_id ON Occupancy(auditorium_id);
-CREATE INDEX IF NOT EXISTS idx_occupancy_timestamp ON Occupancy(timestamp);
+CREATE INDEX IF NOT EXISTS idx_cameras_in_auditorium_auditorium_id ON CamerasInAuditorium(auditorium_id);
 
 -- Insert sample data for city
 INSERT INTO city (id, name_ru, name_en) VALUES
@@ -96,5 +111,5 @@ INSERT INTO auditorium (id, building_id, floor_number, capacity, auditorium_numb
 (1, 1, 5, 150, '506', 'lecture_hall', 'лекционная', 'https://example.com/images/1.jpg'),
 (2, 1, -1, 120, 'Актовый зал', 'coworking', 'коворкинг', 'https://example.com/images/2.jpg'),
 (3, 1, 3, 30, '306', 'classroom', 'учебная', 'https://example.com/images/3.jpg'),
-(4, 1, 3, 30, '308', 'classroom', 'учебная', 'https://example.com/images/4.jpg'),
+(4, 1, 3, 30, '308', 'classroom', 'учебная', 'https://example.com/images/4.jpg')
 ON CONFLICT (id) DO NOTHING;

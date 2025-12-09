@@ -10,6 +10,8 @@ type City struct {
 	NameEN string `gorm:"column:name_en;not null"`
 }
 
+func (City) TableName() string { return "city" }
+
 type Building struct {
 	ID         uint   `gorm:"primaryKey;column:id"`
 	CityID     uint   `gorm:"column:city_id;not null;index"`
@@ -17,6 +19,8 @@ type Building struct {
 	AddressEN  string `gorm:"column:address_en;not null"`
 	FloorCount int    `gorm:"column:floor_count;not null"`
 }
+
+func (Building) TableName() string { return "building" }
 
 type Auditorium struct {
 	ID               uint   `gorm:"primaryKey;column:id"`
@@ -29,13 +33,30 @@ type Auditorium struct {
 	ImageURL         string `gorm:"column:image_url"`
 }
 
+func (Auditorium) TableName() string { return "auditorium" }
+
 type Occupancy struct {
-	ID           uint      `gorm:"primaryKey;autoIncrement"`
-	AuditoriumID uint      `gorm:"not null;index"`
-	PersonCount  int       `gorm:"not null"`
-	Timestamp    time.Time `gorm:"not null;type:timestamptz"`
+	ID           uint      `gorm:"primaryKey;column:id"`
+	AuditoriumID uint      `gorm:"column:auditorium_id;not null;index"`
+	PersonCount  int       `gorm:"column:person_count;not null;check:person_count >= 0"`
+	Timestamp    time.Time `gorm:"column:timestamp;not null;type:timestamptz;default:now()"`
 }
 
+func (Occupancy) TableName() string { return "occupancy" }
+
+type Camera struct {
+	ID  uint   `gorm:"primaryKey;column:id"`
+	Mac string `gorm:"column:mac;size:17;not null;unique"`
+}
+
+func (Camera) TableName() string { return "camera" }
+
+type CamerasInAuditorium struct {
+	CameraID     uint `gorm:"column:camera_id;primaryKey;unique"`
+	AuditoriumID uint `gorm:"column:auditorium_id;not null;index"`
+}
+
+func (CamerasInAuditorium) TableName() string { return "camerasinauditorium" }
 // // CameraEvent represents the incoming message from RabbitMQ
 // type CameraEvent struct {
 // 	City             string    `json:"city"`

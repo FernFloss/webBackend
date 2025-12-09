@@ -20,6 +20,7 @@ type CityResponse struct {
 // BuildingResponse represents the JSON response for a building
 type BuildingResponse struct {
 	ID          uint            `json:"id"`
+	CityID      uint            `json:"city_id"`
 	Address     LocalizedString `json:"address"`
 	FloorsCount int             `json:"floors_count"`
 }
@@ -27,11 +28,26 @@ type BuildingResponse struct {
 // AuditoriumResponse represents the JSON response for an auditorium
 type AuditoriumResponse struct {
 	ID               uint            `json:"id"`
+	BuildingID       uint            `json:"building_id"`
 	FloorNumber      int             `json:"floor_number"`
 	Capacity         int             `json:"capacity"`
 	AuditoriumNumber string          `json:"auditorium_number"`
 	Type             LocalizedString `json:"type"`
 	ImageURL         string          `json:"image_url"`
+}
+
+type CameraResponse struct {
+	ID           uint   `json:"id"`
+	Mac          string `json:"mac"`
+	AuditoriumID *uint  `json:"auditorium_id,omitempty"`
+}
+
+type CreateCameraRequest struct {
+	Mac string `json:"mac" binding:"required,len=17"`
+}
+
+type AttachCameraRequest struct {
+	CameraID uint `json:"camera_id" binding:"required"`
 }
 
 type OccupancyResult struct {
@@ -81,6 +97,7 @@ func (c *City) ToCityResponse() CityResponse {
 func (b *Building) ToBuildingResponse() BuildingResponse {
 	return BuildingResponse{
 		ID: b.ID,
+		CityID: b.CityID,
 		Address: LocalizedString{
 			RU: b.AddressRU,
 			EN: b.AddressEN,
@@ -93,6 +110,7 @@ func (b *Building) ToBuildingResponse() BuildingResponse {
 func (a *Auditorium) ToAuditoriumResponse() AuditoriumResponse {
 	return AuditoriumResponse{
 		ID:               a.ID,
+		BuildingID:       a.BuildingID,
 		FloorNumber:      a.FloorNumber,
 		Capacity:         a.Capacity,
 		AuditoriumNumber: a.AuditoriumNumber,
