@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -12,6 +13,7 @@ import (
 	"web_backend_v2/config"
 	"web_backend_v2/db"
 	"web_backend_v2/handlers"
+	"web_backend_v2/rabbit"
 
 	"github.com/gin-gonic/gin"
 )
@@ -40,22 +42,26 @@ func main() {
 		}
 	}()
 
-	// Initialize RabbitMQ connection
-	// if err := rabbit.InitRabbitMQ(cfg); err != nil {
-	// 	log.Fatalf("Failed to initialize RabbitMQ: %v", err)
-	// }
-	// defer func() {
-	// 	if err := rabbit.CloseRabbitMQ(); err != nil {
-	// 		log.Printf("Error closing RabbitMQ: %v", err)
-	// 	} else {
-	// 		log.Println("RabbitMQ connection closed")
-	// 	}
-	// }()
-
-	// // Start consuming messages
-	// if err := rabbit.ConsumeMessages(cfg.QueueName, handlers.ProcessCameraEvent); err != nil {
-	// 	log.Fatalf("Failed to start consuming messages: %v", err)
-	// }
+	// Initialize RabbitMQ connection and start consumer
+	if err := rabbit.InitRabbitMQ(cfg); err != nil {
+		log.Fatalf("Failed to initialize RabbitMQ: %v", err)
+	}
+	rabbitCtx, rabbitCancel := context.WithCancel(context.Background())
+	consumerErrCh := make(chan error, 1)
+	go func() {
+		consumerErrCh <- rabbit.StartConsumer(rabbitCtx, cfg.QueueName, handlers.ProcessCameraEvent)
+	}()
+	defer func() {
+		rabbitCancel()
+		if err := <-consumerErrCh; err != nil && !errors.Is(err, context.Canceled) {
+			log.Printf("RabbitMQ consumer stopped with error: %v", err)
+		}
+		if err := rabbit.CloseRabbitMQ(); err != nil {
+			log.Printf("Error closing RabbitMQ: %v", err)
+		} else {
+			log.Println("RabbitMQ connection closed")
+		}
+	}()
 
 	// Setup HTTP router and API endpoints
 	router := setupRouter()

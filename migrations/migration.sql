@@ -113,3 +113,31 @@ INSERT INTO auditorium (id, building_id, floor_number, capacity, auditorium_numb
 (3, 1, 3, 30, '306', 'classroom', 'учебная', 'https://example.com/images/3.jpg'),
 (4, 1, 3, 30, '308', 'classroom', 'учебная', 'https://example.com/images/4.jpg')
 ON CONFLICT (id) DO NOTHING;
+
+-- Завести камеры
+INSERT INTO camera (id, mac) VALUES
+  (1,'AA:BB:CC:DD:EE:01'),
+  (2, 'AA:BB:CC:DD:EE:02'),
+  (3, 'AA:BB:CC:DD:EE:03'),
+  (4, 'AA:BB:CC:DD:EE:04')
+ON CONFLICT (mac) DO NOTHING;
+
+-- Привязки камера → аудитория по номеру
+WITH cam AS (
+  SELECT id, mac FROM camera WHERE mac IN (
+    'AA:BB:CC:DD:EE:01','AA:BB:CC:DD:EE:02','AA:BB:CC:DD:EE:03','AA:BB:CC:DD:EE:04'
+  )
+),
+aud AS (
+  SELECT id, auditorium_number
+  FROM auditorium
+  WHERE auditorium_number IN ('306','308','506','Актовый зал')
+)
+INSERT INTO camerasinauditorium (camera_id, auditorium_id)
+SELECT c.id, a.id
+FROM cam c
+JOIN aud a ON (c.mac = 'AA:BB:CC:DD:EE:01' AND a.auditorium_number = '306')
+          OR (c.mac = 'AA:BB:CC:DD:EE:02' AND a.auditorium_number = '308')
+          OR (c.mac = 'AA:BB:CC:DD:EE:03' AND a.auditorium_number = '506')
+          OR (c.mac = 'AA:BB:CC:DD:EE:04' AND a.auditorium_number = 'Актовый зал')
+ON CONFLICT (camera_id) DO UPDATE SET auditorium_id = EXCLUDED.auditorium_id;

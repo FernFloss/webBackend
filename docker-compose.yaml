@@ -3,17 +3,19 @@ services:
     build: .
     container_name: report-service
     ports:
-    - "8080:8080"
+      - "${SERVER_PORT:-8080}:8080"
+    env_file:
+      - .env
     environment:
-      DB_HOST: postgres
-      DB_PORT: 5432
-      DB_USER: postgres
-      DB_PASSWORD: postgres
-      DB_NAME: auditorium_db
-      RABBITMQ_URL: amqp://guest:guest@localhost:5672/
-      QUEUE_NAME: camera_events
-      GIN_MODE: debug
-      SERVER_PORT: 8080
+      DB_HOST: ${DB_HOST:-localhost}
+      DB_PORT: ${DB_PORT:-5432}
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      DB_NAME: ${DB_NAME:-auditorium_db}
+      RABBITMQ_URL: ${RABBITMQ_URL:-amqp://rabbitmq_user:rabbitmq_pass@172.18.130.222:5672/}
+      QUEUE_NAME: ${QUEUE_NAME:-camera_events}
+      GIN_MODE: ${GIN_MODE:-debug}
+      SERVER_PORT: ${SERVER_PORT:-8080}
     networks:
       - tyk-network
     restart: unless-stopped
