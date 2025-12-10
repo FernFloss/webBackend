@@ -112,6 +112,9 @@ func main() {
 func setupRouter() *gin.Engine {
 	router := gin.Default()
 
+	// Allow cross-origin requests (useful for remote frontend testing).
+	router.Use(handlers.CORSMiddleware())
+
 	// API v1 routes
 	v1 := router.Group("/v1")
 	{
@@ -125,6 +128,8 @@ func setupRouter() *gin.Engine {
 			cities.GET("/:city_id/buildings", building.GetBuildingsByCity)
 			auditorium := new(handlers.AuditoriumController)
 			cities.GET("/:city_id/buildings/:building_id/auditories", auditorium.GetAuditoriumsByBuilding)
+			cities.GET("/:city_id/buildings/:building_id/auditories/occupancy", auditorium.GetOccupancyByBuilding)
+			cities.GET("/:city_id/buildings/:building_id/auditories/:auditorium_id/occupancy", auditorium.GetOccupancyByAuditorium)
 			camera := new(handlers.CameraController)
 			cities.GET("/:city_id/buildings/:building_id/auditories/:auditorium_id/cameras", camera.GetCamerasByAuditorium)
 			cities.POST("/:city_id/buildings/:building_id/auditories/:auditorium_id/cameras", camera.AttachCamera)

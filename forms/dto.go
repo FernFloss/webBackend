@@ -58,6 +58,25 @@ type OccupancyResult struct {
 	Warning         *string   `json:"warning,omitempty"`
 }
 
+// OccupancyQuery is used for swagger-friendly binding of occupancy requests.
+// Expects timestamp as RFC3339 in query string (?timestamp=...).
+type OccupancyQuery struct {
+	Timestamp time.Time `form:"timestamp" binding:"required" time_format:"2006-01-02T15:04:05Z07:00"`
+}
+
+// AuditoriumOccupancyResponse describes occupancy for a specific auditorium.
+type AuditoriumOccupancyResponse struct {
+	AuditoriumID    uint      `json:"auditorium_id"`
+	PersonCount     int       `json:"person_count"`
+	ActualTimestamp time.Time `json:"actual_timestamp"`
+	IsFresh         bool      `json:"is_fresh"`
+	TimeDiffMinutes float64   `json:"time_diff_minutes"`
+	Warning         *string   `json:"warning,omitempty"`
+}
+
+// BuildingOccupancyResponse is a typed alias for the building-wide payload.
+type BuildingOccupancyResponse []AuditoriumOccupancyResponse
+
 func (o *Occupancy) ToOccupancyResponse(currentTime time.Time, maxTimeDiffMinutes int) *OccupancyResult {
 	// Вычисляем разницу во времени в минутах
 	timeDiff := currentTime.Sub(o.Timestamp).Minutes()

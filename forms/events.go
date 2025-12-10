@@ -15,7 +15,8 @@ var ErrInvalidCameraEvent = errors.New("invalid camera event")
 type CameraEvent struct {
 	IDCamera    string    `json:"id_camera" validate:"required,mac"`
 	Timestamp   time.Time `json:"timestamp" validate:"required"`
-	PersonCount int       `json:"person_count" validate:"required,gte=0"`
+	// PersonCount is a pointer to distinguish "field absent" (nil) from zero.
+	PersonCount *int `json:"person_count" validate:"required,gte=0"`
 }
 
 // Validate ensures the event has all required fields and sane values via struct tags.

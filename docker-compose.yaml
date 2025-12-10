@@ -7,12 +7,12 @@ services:
     env_file:
       - .env
     environment:
-      DB_HOST: ${DB_HOST:-localhost}
+      DB_HOST: ${DB_HOST:-postgres}
       DB_PORT: ${DB_PORT:-5432}
       DB_USER: ${DB_USER:-postgres}
       DB_PASSWORD: ${DB_PASSWORD:-postgres}
       DB_NAME: ${DB_NAME:-auditorium_db}
-      RABBITMQ_URL: ${RABBITMQ_URL:-amqp://rabbitmq_user:rabbitmq_pass@172.18.130.222:5672/}
+      RABBITMQ_URL: ${RABBITMQ_URL:-amqp://rabbitmq_user:rabbitmq_pass@rabbitmq:5672/}
       QUEUE_NAME: ${QUEUE_NAME:-camera_events}
       GIN_MODE: ${GIN_MODE:-debug}
       SERVER_PORT: ${SERVER_PORT:-8080}

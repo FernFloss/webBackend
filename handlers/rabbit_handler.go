@@ -25,6 +25,6 @@ func ProcessCameraEvent(messageBody []byte) error {
 		return fmt.Errorf("camera %s save failed: %w", event.IDCamera, err)
 	}
 
-	log.Printf("Stored occupancy from camera %s: %d persons at %s", event.IDCamera, event.PersonCount, event.Timestamp.UTC().Format("2006-01-02T15:04:05Z07:00"))
+	log.Printf("Stored occupancy from camera %s: %d persons at %s", event.IDCamera, *event.PersonCount, event.Timestamp.UTC().Format("2006-01-02T15:04:05Z07:00"))
 	return nil
 }

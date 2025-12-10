@@ -48,7 +48,7 @@ func (o *OccupancyModel) SaveEvent(event *forms.CameraEvent) error {
 
 		record := forms.Occupancy{
 			AuditoriumID: assignment.AuditoriumID,
-			PersonCount:  event.PersonCount,
+			PersonCount:  *event.PersonCount,
 			Timestamp:    event.Timestamp.UTC(),
 		}
 

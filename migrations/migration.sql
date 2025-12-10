@@ -53,6 +53,17 @@ CREATE TABLE IF NOT EXISTS Occupancy (
     CONSTRAINT chk_occupancy_person_count_nonnegative CHECK (person_count >= 0)
 );
 
+-- DailyLoad table stores per-day, per-hour average occupancy per auditorium.
+CREATE TABLE IF NOT EXISTS DailyLoad (
+    id SERIAL PRIMARY KEY,
+    auditorium_id INTEGER NOT NULL,
+    day DATE NOT NULL,
+    hour INTEGER NOT NULL CHECK (hour >= 0 AND hour <= 23),
+    avg_person_count DOUBLE PRECISION NOT NULL CHECK (avg_person_count >= 0),
+    CONSTRAINT fk_dailyload_auditorium FOREIGN KEY (auditorium_id) REFERENCES Auditorium(id) ON DELETE CASCADE,
+    CONSTRAINT uq_dailyload_unique UNIQUE (auditorium_id, day, hour)
+);
+
 CREATE TABLE IF NOT EXISTS Camera (
     id SERIAL  PRIMARY KEY ,
     mac CHAR(17) NOT NULL UNIQUE
@@ -71,8 +82,10 @@ CREATE INDEX IF NOT EXISTS idx_building_city_id ON Building(city_id);
 CREATE INDEX IF NOT EXISTS idx_auditorium_building_id ON Auditorium(building_id);
 CREATE INDEX IF NOT EXISTS idx_auditorium_number ON Auditorium(auditorium_number);
 CREATE INDEX IF NOT EXISTS idx_occupancy_auditorium_id ON Occupancy(auditorium_id);
+CREATE INDEX IF NOT EXISTS idx_occupancy_auditorium_ts_desc ON Occupancy(auditorium_id, timestamp DESC);
 CREATE INDEX IF NOT EXISTS idx_cameras_in_auditorium_auditorium_id ON CamerasInAuditorium(auditorium_id);
-
+CREATE INDEX IF NOT EXISTS idx_occupancy_auditorium_ts_desc
+  ON Occupancy (auditorium_id, "timestamp" DESC);
 -- Insert sample data for city
 INSERT INTO city (id, name_ru, name_en) VALUES
 (1, 'Москва', 'Moscow'),

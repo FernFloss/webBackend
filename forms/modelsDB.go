@@ -44,6 +44,17 @@ type Occupancy struct {
 
 func (Occupancy) TableName() string { return "occupancy" }
 
+// DailyLoad holds aggregated per-day, per-hour occupancy averages.
+type DailyLoad struct {
+	ID             uint      `gorm:"primaryKey;column:id"`
+	AuditoriumID   uint      `gorm:"column:auditorium_id;not null;index"`
+	Day            time.Time `gorm:"column:day;type:date;not null;index"`
+	Hour           int       `gorm:"column:hour;not null;check:hour >= 0 AND hour <= 23"`
+	AvgPersonCount float64   `gorm:"column:avg_person_count;not null;check:avg_person_count >= 0"`
+}
+
+func (DailyLoad) TableName() string { return "dailyload" }
+
 type Camera struct {
 	ID  uint   `gorm:"primaryKey;column:id"`
 	Mac string `gorm:"column:mac;size:17;not null;unique"`
