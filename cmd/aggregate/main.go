@@ -18,7 +18,7 @@ func main() {
 		log.Fatalf("load config: %v", err)
 	}
 
-	if err := db.InitDB(cfg); err != nil {
+	if err := db.InitDB(cfg, true); err != nil {
 		log.Fatalf("init db: %v", err)
 	}
 	defer func() {

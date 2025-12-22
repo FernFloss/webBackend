@@ -31,7 +31,7 @@ func main() {
 	log.Println("Starting camera event processor service...")
 
 	// Initialize database connection
-	if err := db.InitDB(cfg); err != nil {
+	if err := db.InitDB(cfg, false); err != nil {
 		log.Fatalf("Failed to initialize database: %v", err)
 	}
 	defer func() {
@@ -130,6 +130,7 @@ func setupRouter() *gin.Engine {
 			cities.GET("/:city_id/buildings/:building_id/auditories", auditorium.GetAuditoriumsByBuilding)
 			cities.GET("/:city_id/buildings/:building_id/auditories/occupancy", auditorium.GetOccupancyByBuilding)
 			cities.GET("/:city_id/buildings/:building_id/auditories/:auditorium_id/occupancy", auditorium.GetOccupancyByAuditorium)
+			cities.GET("/:city_id/buildings/:building_id/auditories/:auditorium_id/statistics", auditorium.GetStatisticsByAuditorium)
 			camera := new(handlers.CameraController)
 			cities.GET("/:city_id/buildings/:building_id/auditories/:auditorium_id/cameras", camera.GetCamerasByAuditorium)
 			cities.POST("/:city_id/buildings/:building_id/auditories/:auditorium_id/cameras", camera.AttachCamera)

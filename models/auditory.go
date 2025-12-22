@@ -11,6 +11,15 @@ import (
 
 type AuditoryModel struct{}
 
+// Exists checks if auditorium with given ID exists.
+func (a *AuditoryModel) Exists(auditoriumID uint) (bool, error) {
+	var count int64
+	if err := db.GetDB().Table("auditorium").Where("id = ?", auditoriumID).Count(&count).Error; err != nil {
+		return false, fmt.Errorf("error checking auditorium existence: %w", err)
+	}
+	return count > 0, nil
+}
+
 func (a *AuditoryModel) GetAuditoriumsByBuilding(uidBuilding uint) ([]forms.Auditorium, error) {
 	var auditories []forms.Auditorium
 
@@ -132,4 +141,75 @@ func (a *AuditoryModel) GetLatestOccupancyForAuditorium(auditoriumID uint, query
 		Warning:         warning,
 	}
 	return resp, nil
+}
+
+// GetAuditoriumStats returns hourly statistics for a specific auditorium on a specific day.
+// statsType: 1 = Absolute Count (Average), 2 = Occupancy Rate (Percentage)
+// Returns strictly hours 9 to 21.
+// The boolean flag noData is true when neither aggregated nor raw data exist for that day.
+func (a *AuditoryModel) GetAuditoriumStats(auditoriumID uint, day time.Time, statsType int) ([]forms.HourlyStatsResponse, bool, error) {
+	// Initialize map for hours 9-21
+	statsMap := make(map[int]float64)
+	// We want to return data for 9..21, but if no data exists, we might return 0.
+
+	// Ensure day is at 00:00:00
+	startOfDay := time.Date(day.Year(), day.Month(), day.Day(), 0, 0, 0, 0, time.UTC)
+	endOfDay := startOfDay.AddDate(0, 0, 1)
+
+	// 1. Query DailyLoad (aggregated data)
+	var dailyRows []forms.DailyLoad
+	err := db.GetDB().Table("dailyload").
+		Where("auditorium_id = ? AND day = ?", auditoriumID, startOfDay).
+		Find(&dailyRows).Error
+	if err != nil {
+		return nil, false, fmt.Errorf("error fetching dailyload: %w", err)
+	}
+
+	for _, r := range dailyRows {
+		if r.Hour >= 9 && r.Hour <= 21 {
+			statsMap[r.Hour] = r.AvgPersonCount
+		}
+	}
+
+	// 2. Query Occupancy (raw data, typically for today)
+	type Result struct {
+		Hour int
+		Avg  float64
+	}
+	var occupancyRows []Result
+	// We use EXTRACT(HOUR FROM timestamp) which depends on DB timezone. Assuming consistency.
+	err = db.GetDB().Table("occupancy").
+		Select("EXTRACT(hour FROM timestamp)::int as hour, AVG(person_count)::float8 as avg").
+		Where("auditorium_id = ? AND timestamp >= ? AND timestamp < ?", auditoriumID, startOfDay, endOfDay).
+		Group("EXTRACT(hour FROM timestamp)").
+		Scan(&occupancyRows).Error
+	if err != nil {
+		return nil, false, fmt.Errorf("error fetching occupancy stats: %w", err)
+	}
+
+	for _, r := range occupancyRows {
+		if r.Hour >= 9 && r.Hour <= 21 {
+			// Overwrite if exists (raw data assumed more precise/current if overlap,
+			// though overlap shouldn't exist due to aggregation logic)
+			statsMap[r.Hour] = r.Avg
+		}
+	}
+
+	// 3. Construct response sorted by hour
+	var response []forms.HourlyStatsResponse
+	for h := 9; h <= 21; h++ {
+		val := statsMap[h] // 0 if missing
+
+		// Currently only returning absolute count regardless of type
+		// If future stats types need different processing or different response fields,
+		// logic will diverge here or in different method.
+		
+		response = append(response, forms.HourlyStatsResponse{
+			Hour:           h,
+			AvgPersonCount: val,
+		})
+	}
+
+	noData := len(dailyRows) == 0 && len(occupancyRows) == 0
+	return response, noData, nil
 }

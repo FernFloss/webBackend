@@ -14,7 +14,7 @@ import (
 var DB *gorm.DB
 
 // InitDB initializes the database connection and runs migrations
-func InitDB(cfg *config.Config) error {
+func InitDB(cfg *config.Config, initMigrations bool) error {
 	var err error
 
 	// Create GORM logger
@@ -60,10 +60,12 @@ func InitDB(cfg *config.Config) error {
 		return fmt.Errorf("failed to get underlying sql.DB: %w", err)
 	}
 
-	// Run migrations from SQL file
-	migrationPath := "migrations/migration.sql"
-	if err := RunMigrations(sqlDB, migrationPath); err != nil {
-		return fmt.Errorf("failed to run migrations: %w", err)
+	if !initMigrations {
+		// Run migrations from SQL file
+		migrationPath := "migrations/migration.sql"
+		if err := RunMigrations(sqlDB, migrationPath); err != nil {
+			return fmt.Errorf("failed to run migrations: %w", err)
+		}
 	}
 
 	return nil

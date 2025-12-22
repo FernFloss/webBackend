@@ -64,6 +64,20 @@ type OccupancyQuery struct {
 	Timestamp time.Time `form:"timestamp" binding:"required" time_format:"2006-01-02T15:04:05Z07:00"`
 }
 
+// StatisticsQuery is used for binding statistics requests.
+// Expects day as YYYY-MM-DD in query string (?day=...).
+// Type: 1 = Average Person Count (Absolute), 2 = Occupancy Rate (Percentage)
+type StatisticsQuery struct {
+	Day  string `form:"day" binding:"required"`
+	Type int    `form:"type"`
+}
+
+// HourlyStatsResponse represents the aggregated hourly statistics
+type HourlyStatsResponse struct {
+	Hour           int     `json:"hour"`
+	AvgPersonCount float64 `json:"avg_person_count"`
+}
+
 // AuditoriumOccupancyResponse describes occupancy for a specific auditorium.
 type AuditoriumOccupancyResponse struct {
 	AuditoriumID    uint      `json:"auditorium_id"`

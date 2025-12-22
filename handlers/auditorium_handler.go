@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"time"
 	"web_backend_v2/forms"
 	"web_backend_v2/models"
 
@@ -126,4 +127,59 @@ func (b *AuditoriumController) GetOccupancyByAuditorium(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, occupancy)
+}
+
+// GetStatisticsByAuditorium handles GET /v1/cities/:city_id/buildings/:building_id/auditories/:auditorium_id/statistics
+func (b *AuditoriumController) GetStatisticsByAuditorium(c *gin.Context) {
+	auditoriumID, err := parseUintParam(c, "auditorium_id")
+	if err != nil {
+		return
+	}
+
+	var q forms.StatisticsQuery
+	if err := c.ShouldBindQuery(&q); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "day is required in format YYYY-MM-DD"})
+		return
+	}
+
+	day, err := time.Parse("2006-01-02", q.Day)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid day format, expected YYYY-MM-DD"})
+		return
+	}
+
+	// Default to type 1 (Absolute) if not provided or zero
+	statsType := q.Type
+	if statsType == 0 {
+		statsType = 1
+	}
+
+	// Ensure auditorium exists
+	exists, err := AuditoriumModel.Exists(auditoriumID)
+	if err != nil {
+		log.Println(err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to verify auditorium"})
+		return
+	}
+	if !exists {
+		c.JSON(http.StatusNotFound, gin.H{"error": "auditorium not found"})
+		return
+	}
+
+	stats, noData, err := AuditoriumModel.GetAuditoriumStats(auditoriumID, day, statsType)
+	if err != nil {
+		log.Println(err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	if noData {
+		c.JSON(http.StatusOK, gin.H{
+			"warning": "no statistics found for this auditorium on the selected day",
+			"stats":   stats,
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, stats)
 }
